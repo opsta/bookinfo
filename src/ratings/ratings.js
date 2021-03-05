@@ -54,6 +54,15 @@ if (process.env.SERVICE_VERSION === 'v2') {
     var password = process.env.MYSQL_DB_PASSWORD
   } else {
     var MongoClient = require('mongodb').MongoClient
+    var options = {}
+    if(process.env.MONGO_DB_USERNAME && process.env.MONGO_DB_PASSWORD) {
+      options = {
+        auth: {
+          user: process.env.MONGO_DB_USERNAME,
+          password: process.env.MONGO_DB_PASSWORD
+        }
+      }
+    }
     var url = process.env.MONGO_DB_URL
   }
 }
@@ -139,7 +148,7 @@ dispatcher.onGet(/^\/ratings\/[0-9]*/, function (req, res) {
           connection.end()
       })
     } else {
-      MongoClient.connect(url, function (err, db) {
+      MongoClient.connect(url, options, function (err, db) {
         if (err) {
           res.writeHead(500, {'Content-type': 'application/json'})
           res.end(JSON.stringify({error: 'could not connect to ratings database'}))
