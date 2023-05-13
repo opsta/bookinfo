@@ -1,11 +1,11 @@
 # MULTISTAGE Build
-FROM gradle:6.0.1-jdk11 AS builder
+FROM gradle:8.1.1-jdk17-alpine AS builder
 WORKDIR /opt/java/
-COPY . /opt/java/
+COPY . .
 RUN gradle clean build
 
 # MULTISTAGE Run
-FROM websphere-liberty:19.0.0.12-kernel-java8-ibmjava
+FROM websphere-liberty:23.0.0.4-kernel-java17-openj9
 
 # Copy .jar file from build stage
 COPY --from=builder /opt/java/build/libs/java.war /opt/ibm/wlp/usr/servers/defaultServer/apps/reviews.war

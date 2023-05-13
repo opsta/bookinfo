@@ -1,0 +1,16 @@
+.gradle
+.settings
+bin
+k8s
+keys
+src/test
+test
+
+.classpath
+.git
+.gitignore
+.project
+docker-compose.yml
+Dockerfile
+Jenkinsfile
+README.md

@@ -6,5 +6,5 @@
 
 ```bash
 npm install
-node ratings.js 8080
+npm start
 ```

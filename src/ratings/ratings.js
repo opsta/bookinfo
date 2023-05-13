@@ -1,4 +1,4 @@
-// Copyright 2017 Istio Authors
+// Copyright Istio Authors
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -54,16 +54,19 @@ if (process.env.SERVICE_VERSION === 'v2') {
     var password = process.env.MYSQL_DB_PASSWORD
   } else {
     var MongoClient = require('mongodb').MongoClient
-    var options = {}
+    var options = {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    }
     if(process.env.MONGO_DB_USERNAME && process.env.MONGO_DB_PASSWORD) {
-      options = {
+      options = Object.assign({}, options, {
         auth: {
           user: process.env.MONGO_DB_USERNAME,
           password: process.env.MONGO_DB_PASSWORD
         }
-      }
+      })
     }
-    var url = process.env.MONGO_DB_URL
+    var url = process.env.MONGO_DB_URL + "/" + process.env.MONGO_DB_NAME
   }
 }
 
@@ -148,18 +151,25 @@ dispatcher.onGet(/^\/ratings\/[0-9]*/, function (req, res) {
           connection.end()
       })
     } else {
-      MongoClient.connect(url, options, function (err, db) {
+      MongoClient.connect(url, options, function (err, client) {
         if (err) {
           res.writeHead(500, {'Content-type': 'application/json'})
           res.end(JSON.stringify({error: 'could not connect to ratings database'}))
+          console.log(err)
         } else {
+          const db = client.db(process.env.MONGO_DB_NAME)
           db.collection('ratings').find({}).toArray(function (err, data) {
             if (err) {
               res.writeHead(500, {'Content-type': 'application/json'})
               res.end(JSON.stringify({error: 'could not load ratings from database'}))
+              console.log(err)
             } else {
-              firstRating = data[0].rating
-              secondRating = data[1].rating
+              if (data[0]) {
+                firstRating = data[0].rating
+              }
+              if (data[1]) {
+                secondRating = data[1].rating
+              }
               var result = {
                 id: productId,
                 ratings: {
@@ -170,8 +180,8 @@ dispatcher.onGet(/^\/ratings\/[0-9]*/, function (req, res) {
               res.writeHead(200, {'Content-type': 'application/json'})
               res.end(JSON.stringify(result))
             }
-            // close DB once done:
-            db.close()
+            // close client once done:
+            client.close()
           })
         }
       })
@@ -261,6 +271,13 @@ function handleRequest (request, response) {
 }
 
 var server = http.createServer(handleRequest)
+
+process.on('SIGTERM', function () {
+  console.log("SIGTERM received")
+  server.close(function () {
+    process.exit(0);
+  });
+});
 
 server.listen(port, function () {
   console.log('Server listening on: http://0.0.0.0:%s', port)
